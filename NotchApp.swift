@@ -904,7 +904,18 @@ class PassThroughView<Content: View>: NSHostingView<Content> {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var notchWindow: NSWindow!
 
+    var isNotchEnabled: Bool {
+        get {
+            UserDefaults.standard.object(forKey: "isNotchEnabled") as? Bool ?? true
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "isNotchEnabled")
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.regular)
+
         let screenRect = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1920, height: 1080)
         
         // Since the user already has a physical MacBook notch, our software notch needs to be wider 
@@ -959,7 +970,60 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         notchWindow.acceptsMouseMovedEvents = true
         
         notchWindow.contentView = hostingView
-        notchWindow.makeKeyAndOrderFront(nil)
+        if isNotchEnabled {
+            notchWindow.orderFront(nil)
+        } else {
+            notchWindow.orderOut(nil)
+        }
+        updateDockTile()
+    }
+
+    @objc func toggleNotch() {
+        setNotchEnabled(!isNotchEnabled)
+    }
+
+    func setNotchEnabled(_ enabled: Bool) {
+        isNotchEnabled = enabled
+        updateNotchVisibility()
+        updateDockTile()
+    }
+
+    func updateNotchVisibility() {
+        guard let window = notchWindow else { return }
+        if isNotchEnabled {
+            window.orderFront(nil)
+        } else {
+            window.orderOut(nil)
+        }
+    }
+
+    func updateDockTile() {
+        DispatchQueue.main.async {
+            NSApp.dockTile.badgeLabel = self.isNotchEnabled ? nil : "OFF"
+            NSApp.dockTile.display()
+        }
+    }
+
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+
+        let toggleTitle = isNotchEnabled ? "Turn Notch Off" : "Turn Notch On"
+        let toggleItem = NSMenuItem(title: toggleTitle, action: #selector(toggleNotch), keyEquivalent: "")
+        toggleItem.target = self
+        menu.addItem(toggleItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let statusItem = NSMenuItem(title: "Status: \(isNotchEnabled ? "Active" : "Disabled")", action: nil, keyEquivalent: "")
+        statusItem.isEnabled = false
+        menu.addItem(statusItem)
+
+        return menu
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        toggleNotch()
+        return true
     }
 }
 

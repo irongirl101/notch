@@ -52,8 +52,10 @@ After building:
 ```bash
 open Notch.app
 ```
-
-The app runs as a menu-bar style agent, so it does not show a Dock icon.
+The app appears in the macOS Dock:
+- **Left-click the Dock icon** to turn the notch on or off.
+- **Right-click the Dock icon** to open the Dock menu with a "Turn Notch Off / On" action and status indicator.
+- An "OFF" badge appears on the Dock icon whenever the notch is disabled.
 
 ## Permissions
 

@@ -24,10 +24,14 @@ mkdir -p "${TMP_DIR}"
 
 # Compile Swift code
 export TMPDIR="${TMP_DIR}"
+ARCH="$(uname -m)"
+DEPLOYMENT_TARGET="14.0"
+TARGET_TRIPLE="${ARCH}-apple-macosx${DEPLOYMENT_TARGET}"
+
 if [ -n "${SWIFTC}" ] && [ -n "${SDKROOT}" ]; then
-  "${SWIFTC}" -sdk "${SDKROOT}" -module-cache-path "${MODULE_CACHE_DIR}" -parse-as-library NotchApp.swift -o "${APP_MACOS_DIR}/NotchApp"
+  "${SWIFTC}" -target "${TARGET_TRIPLE}" -sdk "${SDKROOT}" -module-cache-path "${MODULE_CACHE_DIR}" -parse-as-library NotchApp.swift -o "${APP_MACOS_DIR}/NotchApp"
 else
-  swiftc -module-cache-path "${MODULE_CACHE_DIR}" -parse-as-library NotchApp.swift -o "${APP_MACOS_DIR}/NotchApp"
+  swiftc -target "${TARGET_TRIPLE}" -module-cache-path "${MODULE_CACHE_DIR}" -parse-as-library NotchApp.swift -o "${APP_MACOS_DIR}/NotchApp"
 fi
 
 # Copy Info.plist and AppIcon
@@ -40,7 +44,8 @@ echo -n "APPL????" > "${APP_BUNDLE}/Contents/PkgInfo"
 # Ensure Resources isn't empty (some signing/assessment paths dislike it)
 echo -n "" > "${APP_RESOURCES_DIR}/.placeholder"
 
-# Remove any extended attributes before signing
+# Remove any extended attributes and AppleDouble files before signing
+dot_clean -m "${APP_BUNDLE}" 2>/dev/null || true
 xattr -cr "${APP_BUNDLE}" 2>/dev/null || true
 
 # Sign with stable local identity to keep Automation permissions
